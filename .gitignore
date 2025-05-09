@@ -1,0 +1,9 @@
+.env
+/appdata/
+/secrets/
+/shared/
+/logs/
+/compose/appdata/
+
+!appdata/traefik2/rules/
+!appdata/traefik2/rules/**

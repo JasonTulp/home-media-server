@@ -1,0 +1,31 @@
+services:
+  firefox:
+    image: lscr.io/linuxserver/firefox:latest
+    container_name: firefox
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - t2_proxy
+      - socket_proxy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - FIREFOX_CLI=https://www.linuxserver.io/ #optional
+    volumes:
+      - $DOCKERDIR/appdata/firefox:/config
+    ports:
+      - 3000:3000
+      - 3001:3001
+    shm_size: "1gb"
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.firefox-rtr.entrypoints=websecure"
+      - "traefik.http.routers.firefox-rtr.rule=Host(`browse.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.firefox-rtr.middlewares=chain-basic-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.firefox-rtr.service=firefox-svc"
+      - "traefik.http.services.firefox-svc.loadbalancer.server.port=3000"

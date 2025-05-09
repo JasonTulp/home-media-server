@@ -1,0 +1,32 @@
+services:
+  steamcmd:
+    container_name: vrising-server 
+    image: ich777/steamcmd:vrising
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    ports:
+        - 9876-9877:9876-9877/udp #forward these ports I did tcp/udp
+    environment:
+        - GAME_ID=1829350
+        - SERVER_NAME=Jasons Rising - PvE #Listed name of the server
+        - WORLD_NAME=Jasons-Rising #name of save file can be whatever you want
+        - PUID=$PUID
+        - PGID=$PGID
+        - ENABLE_BEPINEX=false #keep false for now, as of now its not working
+    volumes:
+        - $DOCKERDIR/appdata/vrising/steam/:/serverdata/steamcmd
+        - $DOCKERDIR/appdata/vrising/server/:/serverdata/serverfiles
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.vrising-rtr.entrypoints=websecure"
+      - "traefik.http.routers.vrising-rtr.rule=Host(`vrising.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.vrising-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.vrising-rtr.service=vrising-svc"
+      - "traefik.http.services.vrising-svc.loadbalancer.server.port=9877"

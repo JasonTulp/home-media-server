@@ -1,0 +1,33 @@
+services:
+  deluge:
+    container_name: deluge
+    image: linuxserver/deluge
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    # profiles: ["core", "all"]
+    ports:
+      - "8112:8112"
+    networks:
+      t2_proxy:
+        ipv4_address: 192.168.90.101 # Static IP 
+      socket_proxy:
+    # command: -H unix:///var/run/docker.sock # # Use Docker Socket Proxy instead for improved security
+    # command: -H tcp://socket-proxy:2375
+    volumes:
+      - $DOCKERDIR/appdata/deluge:/config
+      - ~/Downloads:/downloads
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.deluge-rtr.entrypoints=websecure"
+      - "traefik.http.routers.deluge-rtr.rule=Host(`deluge.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.deluge-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.deluge-rtr.service=deluge-svc"
+      - "traefik.http.services.deluge-svc.loadbalancer.server.port=8112"

@@ -1,0 +1,38 @@
+services:
+  nextcloud-aio-mastercontainer:
+    container_name: nextcloud-aio-mastercontainer # This line is not allowed to be changed as otherwise AIO will not work correctly
+    image: nextcloud/all-in-one:latest
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    restart: unless-stopped
+    # command: -H tcp://socket-proxy:2375
+    volumes:
+      - nextcloud_aio_mastercontainer:/mnt/docker-aio-config # This line is not allowed to be changed as otherwise the built-in backup solution will not work
+      - /var/run/docker.sock:/var/run/docker.sock:ro # May be changed on macOS, Windows or docker rootless. See the applicable documentation. If adjusting, don't forget to also set 'WATCHTOWER_DOCKER_SOCKET_PATH'!
+    # network_mode: bridge # add to the same network as docker run would do
+    networks:
+      - t2_proxy
+      - socket_proxy
+    environment:
+      - PUID=PUID
+      - PGID=PGID
+      # - MYSQL_HOST=mariadb
+      # - REDIS_HOST=redis
+      - APACHE_PORT=11000
+      - APACHE_IP_BINDING=$APACHE_IP_BINDING
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.nextcloud-rtr.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-rtr.rule=Host(`cloud.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.nextcloud-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.nextcloud-rtr.service=nextcloud-svc"
+      - "traefik.http.services.nextcloud-svc.loadbalancer.server.port=11000"
+
+
+volumes: # If you want to store the data on a different drive, see https://github.com/nextcloud/all-in-one#how-to-store-the-filesinstallation-on-a-separate-drive
+  nextcloud_aio_mastercontainer:
+    name: nextcloud_aio_mastercontainer # This line is not allowed to be changed as otherwise the built-in backup solution will not work

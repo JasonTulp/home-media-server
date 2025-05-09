@@ -1,0 +1,25 @@
+services:
+  uptime-kuma:
+    container_name: uptime-kuma
+    image: louislam/uptime-kuma:1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - $DOCKERDIR/appdata/uptime-kuma/data:/app/data
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.kuma-rtr.entrypoints=websecure"
+      - "traefik.http.routers.kuma-rtr.rule=Host(`kuma.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.kuma-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.kuma-rtr.service=kuma-svc"
+      - "traefik.http.services.kuma-svc.loadbalancer.server.port=3001"

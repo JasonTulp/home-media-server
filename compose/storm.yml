@@ -1,0 +1,28 @@
+services:
+  storm:
+    container_name: storm
+    image: ghcr.io/relvacode/storm
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    volumes:
+      - $DOCKERDIR/appdata/storm:/config
+      - ~/Downloads:/downloads
+    environment:
+      - DELUGE_RPC_HOSTNAME=deluge
+      - DELUGE_RPC_USERNAME=$DELUGE_STORM_USER
+      - DELUGE_RPC_PASSWORD=$DELUGE_STORM_PASSWORD
+      - DELUGE_RPC_VERSION=v2
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.storm-rtr.entrypoints=websecure"
+      - "traefik.http.routers.storm-rtr.rule=Host(`storm.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.storm-rtr.middlewares=chain-basic-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.storm-rtr.service=storm-svc"
+      - "traefik.http.services.storm-svc.loadbalancer.server.port=8221"

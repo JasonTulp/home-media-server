@@ -1,0 +1,35 @@
+services:
+  # Bazarr - Subtitle Management
+  bazarr:
+    image: lscr.io/linuxserver/bazarr
+    container_name: bazarr
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    #profiles: ["media", "arrs", "all"]
+    networks:
+      - t2_proxy
+      - socket_proxy
+    ports:
+      - "6767:6767"
+    volumes:
+      - $DOCKERDIR/appdata/bazarr:/config
+      - /media:/data/media
+      - /media/movies:/movies
+      - /media/tv:/tv
+      - /media2/movies:/movies2
+      - /media2/tv:/tv2
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers Auth
+      - "traefik.http.routers.bazarr-rtr.entrypoints=websecure"
+      - "traefik.http.routers.bazarr-rtr.rule=Host(`bazarr.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.bazarr-rtr.middlewares=chain-basic-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.bazarr-rtr.service=bazarr-svc"
+      - "traefik.http.services.bazarr-svc.loadbalancer.server.port=6767"

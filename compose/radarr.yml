@@ -1,0 +1,42 @@
+services:
+  radarr:
+    container_name: radarr
+    image: lscr.io/linuxserver/radarr
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    # profiles: ["core", "all"]
+    networks:
+      t2_proxy:
+        ipv4_address: 192.168.90.103 # Static IP 
+      socket_proxy:
+    # command: -H unix:///var/run/docker.sock # # Use Docker Socket Proxy instead for improved security
+    # command: -H tcp://socket-proxy:2375
+    ports:
+      - "7878:7878"
+    volumes:
+      - $DOCKERDIR/appdata/radarr:/config
+      - /media/movies:/movies
+      - /media2/movies:/movies2
+      - ~/Downloads:/downloads
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.radarr-rtr.entrypoints=websecure"
+      - "traefik.http.routers.radarr-rtr.rule=Host(`radarr.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.radarr-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.radarr-rtr.service=radarr-svc"
+      - "traefik.http.services.radarr-svc.loadbalancer.server.port=7878"
+      # CORS
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolalloworiginlist=*" 
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolallowmethods=GET,POST,PUT"
+      - "traefik.http.middlewares.serviceheaders.headers.addvaryheader=true"
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolmaxage=100"
+      - "traefik.http.routers.radarr-rtr.middlewares=serviceheaders"

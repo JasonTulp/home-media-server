@@ -1,0 +1,57 @@
+services:
+  kasm:
+    image: lscr.io/linuxserver/kasm:latest
+    container_name: kasm
+    security_opt:
+      - no-new-privileges:true
+    privileged: true
+    cap_add:
+      - SYS_ADMIN
+      - MKNOD
+      - SYSLOG
+      - SYS_RAWIO
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped
+    # networks:
+    #   - t2_proxy
+    #   - socket_proxy
+    networks:
+      t2_proxy:
+        ipv4_address: 192.168.90.54 # Static IP 
+      socket_proxy:
+    environment:
+      - TZ=TZ
+      - PUID=$PUID
+      - PGID=$PGID
+      - KASM_PORT=4433
+      # - DOCKER_HUB_USERNAME=USER #optional
+      # - DOCKER_HUB_PASSWORD=PASS #optional
+      # - DOCKER_MTU=1500 #optional
+    volumes:
+      - $DOCKERDIR/appdata/kasm/data:/opt
+      - $DOCKERDIR/appdata/kasm/profiles:/profiles #optional
+      - $DOCKERDIR/appdata/kasm/dev/input:/dev/input #optional
+      - $DOCKERDIR/appdata/kasm/run/udev/data:/run/udev/data #optional
+      # - /var/run/docker.sock:/var/run/docker.sock:ro # # Use Docker Socket Proxy instead for improved security
+    ports:
+      - 3000:3000
+      - 4433:4433
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.kasm-rtr.entrypoints=websecure"
+      - "traefik.http.routers.kasm-rtr.rule=Host(`kasm.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.kasm-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.kasm-rtr.service=kasm-svc"
+      - "traefik.http.services.kasm-svc.loadbalancer.server.port=4433"
+      # Setup service
+      - "traefik.http.routers.kasm-setup-rtr.entrypoints=websecure"
+      - "traefik.http.routers.kasm-setup-rtr.rule=Host(`kasm.setup.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.kasm-setup-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.kasm-setup-rtr.service=kasm-setup-svc"
+      - "traefik.http.services.kasm-setup-svc.loadbalancer.server.port=3000"

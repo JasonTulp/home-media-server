@@ -1,0 +1,131 @@
+services:
+  ollama-server:
+    image: ollama/ollama:latest
+    container_name: ollama-server
+    # network_mode: "host" 
+    ports:
+      - "11434:11434"
+    volumes:
+      - $DOCKERDIR/appdata/ollama:/root/.ollama
+      - $DOCKERDIR/shared/ollama/model-files:/modelfiles
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    environment:
+    #   - gpus=all
+      - PUID=$PUID
+      - PGID=$PGID
+      - OLLAMA_ORIGINS=*
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - driver: nvidia
+            count: 1
+            capabilities: [gpu]
+    labels:
+
+
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.ollama-rtr.entrypoints=websecure"
+      - "traefik.http.routers.ollama-rtr.rule=Host(`ollama.$DOMAINNAME`)"
+      # Middlewares
+      # - "traefik.http.routers.ollama-rtr.middlewares=chain-no-auth@file"
+      # - "traefik.http.routers.ollama-rtr.middlewares=cors@file"  
+      # HTTP Services
+      - "traefik.http.routers.ollama-rtr.service=ollama-svc"
+      - "traefik.http.services.ollama-svc.loadbalancer.server.port=11434" 
+
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolalloworiginlist=*" 
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolallowheaders=*"
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolallowmethods=GET,POST,PUT"
+      - "traefik.http.middlewares.serviceheaders.headers.addvaryheader=true"
+      - "traefik.http.middlewares.serviceheaders.headers.accesscontrolmaxage=100"
+      - "traefik.http.routers.ollama-rtr.middlewares=serviceheaders"
+
+      # - "traefik.http.middlewares.testheader.headers.accesscontrolallowmethods=GET,OPTIONS,PUT"
+      # - "traefik.http.middlewares.testheader.headers.accesscontrolallowheaders=*"
+      # - "traefik.http.middlewares.testheader.headers.accesscontrolalloworiginlist=https://foo.bar.org,https://example.org"
+      # - "traefik.http.middlewares.testheader.headers.accesscontrolmaxage=100"
+      # - "traefik.http.middlewares.testheader.headers.addvaryheader=true"
+
+
+  # anythingllm:
+  #   image: mintplexlabs/anythingllm
+  #   container_name: anythingllm
+  #   # ports:
+  #   #   - "3001:3001"
+  #   cap_add:
+  #     - SYS_ADMIN
+  #   networks:
+  #     - t2_proxy
+  #     - socket_proxy
+  #   environment:
+  #   # Adjust for your environment
+  #     - STORAGE_DIR=/app/server/storage
+  #     - JWT_SECRET="make this a large list of random numbers and letters 20+"
+  #     - LLM_PROVIDER=ollama
+  #     - OLLAMA_BASE_PATH=http://127.0.0.1:11434
+  #     - OLLAMA_MODEL_PREF=llama2
+  #     - OLLAMA_MODEL_TOKEN_LIMIT=4096
+  #     - EMBEDDING_ENGINE=ollama
+  #     - EMBEDDING_BASE_PATH=http://127.0.0.1:11434
+  #     - EMBEDDING_MODEL_PREF=nomic-embed-text:latest
+  #     - EMBEDDING_MODEL_MAX_CHUNK_LENGTH=8192
+  #     - VECTOR_DB=lancedb
+  #     - WHISPER_PROVIDER=local
+  #     - TTS_PROVIDER=native
+  #     - PASSWORDMINCHAR=8
+  #     # Add any other keys here for services or settings
+  #     # you can find in the docker/.env.example file
+  #   volumes:
+  #     - $DOCKERDIR/appdata/anythingllm:/app/server/storage
+  #   restart: unless-stopped
+  #   labels:
+  #     - "traefik.enable=true"
+  #     # HTTP Routers
+  #     - "traefik.http.routers.ollama-rtr.entrypoints=websecure"
+  #     - "traefik.http.routers.ollama-rtr.rule=Host(`ollama.$DOMAINNAME`)"
+  #     # Middlewares
+  #     - "traefik.http.routers.ollama-rtr.middlewares=chain-no-auth@file"
+  #     # HTTP Services
+  #     - "traefik.http.routers.ollama-rtr.service=ollama-svc"
+  #     - "traefik.http.services.ollama-svc.loadbalancer.server.port=3001" 
+
+
+  # ollama-webui:
+  #   image: ghcr.io/ollama-webui/ollama-webui:main
+  #   container_name: ollama-webui
+  #   # network_mode: "host" 
+  #   restart: unless-stopped
+  #   security_opt:
+  #     - no-new-privileges:true
+  #   networks:
+  #     - t2_proxy
+  #     - socket_proxy
+  #   volumes:
+  #     - $DOCKERDIR/appdata/ollama/webui:/app/backend/data
+  #   ports:
+  #     - "3010:8080"
+  #   environment:
+  #     # - OLLAMA_BASE_URL=http://ollama-server:11434
+  #     - 'OLLAMA_BASE_URL=http://ollama-server:11434'
+  #     # - OLLAMA_HOST=0.0.0.0
+  #     - PUID=$PUID
+  #     - PGID=$PGID
+  #   extra_hosts:
+  #     - host.docker.internal:host-gateway
+  #   depends_on:
+  #     - ollama-server
+  #   labels:
+  #     - "traefik.enable=true"
+  #     # HTTP Routers
+  #     - "traefik.http.routers.ollama-rtr.entrypoints=websecure"
+  #     - "traefik.http.routers.ollama-rtr.rule=Host(`ollama.$DOMAINNAME`)"
+  #     # Middlewares
+  #     - "traefik.http.routers.ollama-rtr.middlewares=chain-no-auth@file"
+  #     # HTTP Services
+  #     - "traefik.http.routers.ollama-rtr.service=ollama-svc"
+  #     - "traefik.http.services.ollama-svc.loadbalancer.server.port=8080" 

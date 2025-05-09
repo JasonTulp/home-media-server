@@ -1,0 +1,40 @@
+services:
+  # VSCode - VSCode Editing
+  vscode:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: vscode
+    # security_opt:
+    #   - no-new-privileges:true
+    restart: unless-stopped
+    #profiles: ["core", "all"]
+    networks:
+      - t2_proxy
+      - socket_proxy
+    ports:
+      - "8443:8443"
+    volumes:
+      #- $DOCKERDIR:/data/docker
+      - $USERDIR:/config/host-machine/
+      - $DOCKERDIR/appdata/vscode:/config
+      #- "rust-client.rustupPath": "~/.cargo/bin/rustup"
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      # DOCKER_HOST: tcp://socket-proxy:2375
+      # PASSWORD: $VSCODE_PASSWORD
+      # HASHED_PASSWORD: #optional
+      # SUDO_PASSWORD: password #optional
+      # SUDO_PASSWORD_HASH: #optional
+      # PROXY_DOMAIN: code-server.my.domain #optional
+      DEFAULT_WORKSPACE: /config/data/User/Workspace #optional
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.vscode-rtr.entrypoints=websecure"
+      - "traefik.http.routers.vscode-rtr.rule=Host(`code.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.vscode-rtr.middlewares=chain-basic-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.vscode-rtr.service=vscode-svc"
+      - "traefik.http.services.vscode-svc.loadbalancer.server.port=8443"

@@ -1,0 +1,28 @@
+services:
+  game-server:
+    container_name: game-server
+    image: jasontulp/game-server:amd
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    ports:
+      - "2048:2048"
+    build: .
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      DATABASE_URL: $GAME_SQL_DATABASE_URL
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.game-server-rtr.entrypoints=websecure"
+      - "traefik.http.routers.game-server-rtr.rule=Host(`games.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.game-server-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.game-server-rtr.service=game-server-svc"
+      - "traefik.http.services.game-server-svc.loadbalancer.server.port=2048"

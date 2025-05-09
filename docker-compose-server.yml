@@ -1,0 +1,73 @@
+########################### NETWORKS
+networks:
+  default:
+    driver: bridge
+  socket_proxy:
+    name: socket_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.91.0/24
+  t2_proxy:
+    name: t2_proxy
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.90.0/24
+########################### SECRETS
+secrets:
+  basic_auth_credentials:
+    file: $DOCKERDIR/secrets/basic_auth_credentials
+  cf_dns_api_token:
+    file: $DOCKERDIR/secrets/cf_dns_api_token
+  mysql_root_password:
+    file: $DOCKERDIR/secrets/mysql_root_password
+
+include:
+  #=== CORE SERVICES
+  - compose/socket-proxy.yml
+  - compose/traefik.yml
+  - compose/homepage.yml
+
+  #=== MONITORING
+  - compose/phpmyadmin.yml
+  - compose/dozzle.yml
+  # - compose/grafana.yml # Removing to debug source of crashing
+  - compose/portainer.yml
+  - compose/glances.yml
+  # - compose/uptime-kuma.yml
+
+  #=== MEDIA MANAGEMENT
+  - compose/radarr.yml     # Movies
+  - compose/sonarr.yml     # TV Shows
+  - compose/jackett.yml    # Torrent Indexer
+  # - compose/bazarr.yml     # Subtitles TODO Setup
+  - compose/deluge.yml     # Torrenting
+  - compose/storm.yml      # Deluge mobile Web UI
+  - compose/jellyfin.yml   # stream
+  # - compose/emby.yml
+  - compose/jellyseerr.yml # Requests
+  - compose/tdarr.yml      # Trnascoding
+  # - compose/plex.yml
+
+  #=== REMOTE ACCESS
+  - compose/mariadb.yml
+  - compose/guacamole.yml # Potentially the cause of the constant crashing
+  - compose/vscode.yml
+  - compose/firefox.yml
+  # - compose/kasm.yml
+
+  #=== CLOUD STORAGE
+  - compose/nextcloud.yml
+
+  #=== GAMES
+  # - compose/valheim.yml moved to docker-backup
+  # - compose/vrising.yml moved to docker-backup
+  - compose/game-server.yml
+  # - compose/quilt-planner.yml
+  - compose/pila-generator.yml
+
+  # - compose/ollama.yml
+  # - compose/movie-bot.yml
+  # - compose/ego-bot.yml
+

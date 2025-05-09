@@ -1,0 +1,80 @@
+services:
+  redis:
+    container_name: redis
+    image: redis:alpine
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    environment:
+      TZ: $TZ
+      # PUID: $PUID
+      # PGID: $PGID
+
+  nextcloud:
+    container_name: nextcloud
+    image: nextcloud:apache
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    # networks:
+    #   t2_proxy:
+    #     ipv4_address: 192.168.90.66 # Static IP 
+    #   socket_proxy:
+    networks:
+      - t2_proxy
+      - socket_proxy
+    # ports:
+    #   - 127.0.0.1:8080:80
+    # command: -H tcp://socket-proxy:2375
+    # command: -H unix:///var/run/docker.sock # # Use Docker Socket Proxy instead for improved security
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # # Use Docker Socket Proxy instead for improved security
+      - /cloud/nextcloud:/var/www/html:z
+      - $DOCKERDIR/scripts/nextcloud-entrypoint.sh:/entrypoint.sh
+    environment:
+      - TZ=$TZ
+      - MYSQL_HOST=mariadb
+      - REDIS_HOST=redis
+      - APACHE_PORT=11000
+      - APACHE_IP_BINDING=0.0.0.0
+      - TRUSTED_PROXIES=172.xx.xx.x
+    env_file:
+      - $DOCKERDIR/secrets/nextcloud.env
+    depends_on:
+      - mariadb
+      - redis
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.nextcloud-rtr.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-rtr.rule=Host(`cloud.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.nextcloud-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.nextcloud-rtr.service=nextcloud-svc"
+      - "traefik.http.services.nextcloud-svc.loadbalancer.server.port=11000" 
+    # entrypoint: ["/entrypoint.sh"]
+    # command: ["apache2-foreground"]
+
+  # cron:
+  #   container_name: nextcloud-cron
+  #   image: nextcloud:apache
+  #   restart: unless-stopped
+  #   # networks:
+  #   #   - t2_proxy
+  #   #   - socket_proxy
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro # # Use Docker Socket Proxy instead for improved security
+  #     - $DOCKERDIR/appdata/nextcloud:/var/www/html:z
+  #   entrypoint: /cron.sh
+  #   environment:
+  #     TZ: $TZ
+  #     PUID: $PUID
+  #     PGID: $PGID
+  #   depends_on:
+  #     - mariadb
+  #     - redis
+
+volumes:
+  nextcloud:

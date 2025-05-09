@@ -1,0 +1,28 @@
+services:
+  # Prometheus - Database for sensor data
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    networks:
+      - t2_proxy
+      - socket_proxy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    #profiles: ["dbs", "all"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - $DOCKERDIR/appdata/prometheus/config:/etc/prometheus
+      - $DOCKERDIR/appdata/prometheus/data:/prometheus
+    user: $PUID:$PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.prometheus-rtr.entrypoints=websecure"
+      - "traefik.http.routers.prometheus-rtr.rule=Host(`prometheus.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.prometheus-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.prometheus-rtr.service=prometheus-svc"
+      - "traefik.http.services.prometheus-svc.loadbalancer.server.port=9090"

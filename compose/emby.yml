@@ -1,0 +1,51 @@
+services:
+  emby:
+    container_name: emby
+    image: lscr.io/linuxserver/emby:latest
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    runtime: nvidia  # Use NVIDIA runtime
+    ports:
+      - "8097:8096"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - $DOCKERDIR/appdata/emby/config:/config
+      - type: bind
+        source: /media/movies
+        target: /data/movies
+      - type: bind
+        source: /media/tv
+        target: /data/tv
+      - type: bind
+        source: /media2/movies
+        target: /data/movies2
+      - type: bind
+        source: /media2/tv
+        target: /data/tv2
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+      gpus: all
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all  # Ensure the container has full access
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.emby-rtr.entrypoints=websecure"
+      - "traefik.http.routers.emby-rtr.rule=Host(`emby.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.emby-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.emby-rtr.service=emby-svc"
+      - "traefik.http.services.emby-svc.loadbalancer.server.port=8096"

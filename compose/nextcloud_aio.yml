@@ -1,0 +1,31 @@
+services:
+  nextcloud-aio-mastercontainer:
+    container_name: nextcloud-aio-mastercontainer
+    image: nextcloud/all-in-one:latest
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    restart: unless-stopped
+    volumes:
+      - nextcloud_aio_mastercontainer:/mnt/docker-aio-config 
+      - /var/run/docker.sock:/var/run/docker.sock:ro 
+    # networks:
+    #   - t2_proxy
+    #   - socket_proxy
+    environment:
+      - PUID=PUID
+      - PGID=PGID
+      - APACHE_PORT=11000
+      - APACHE_IP_BINDING=0.0.0.0
+    labels:
+    # DAMMIT, AIO DOESN"T SUPPORT LABELSSSS https://github.com/nextcloud/all-in-one/discussions/1930#discussioncomment-4865194
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextcloud-rtr.entrypoints=websecure"
+      - "traefik.http.routers.nextcloud-rtr.rule=Host(`cloud.$DOMAINNAME`)"
+      - "traefik.http.routers.nextcloud-rtr.middlewares=chain-no-auth@file"
+      - "traefik.http.routers.nextcloud-rtr.service=nextcloud-svc"
+      - "traefik.http.services.nextcloud-svc.loadbalancer.server.port=11000"
+
+volumes: # If you want to store the data on a different drive, see https://github.com/nextcloud/all-in-one#how-to-store-the-filesinstallation-on-a-separate-drive
+  nextcloud_aio_mastercontainer:
+    name: nextcloud_aio_mastercontainer # This line is not allowed to be changed as otherwise the built-in backup solution will not work

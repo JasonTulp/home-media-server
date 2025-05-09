@@ -1,0 +1,25 @@
+services:
+  pila-generator:
+    container_name: pila-generator
+    image: jasontulp/pila-generator:latest
+    restart: unless-stopped
+    networks:
+      - t2_proxy
+      - socket_proxy
+    ports:
+      - "9114:9114"
+    build: .
+    environment:
+      TZ: $TZ
+      PUID: $PUID
+      PGID: $PGID
+    labels:
+      - "traefik.enable=true"
+      # HTTP Routers
+      - "traefik.http.routers.pila-generator-rtr.entrypoints=websecure"
+      - "traefik.http.routers.pila-generator-rtr.rule=Host(`pila.$DOMAINNAME`)"
+      # Middlewares
+      - "traefik.http.routers.pila-generator-rtr.middlewares=chain-no-auth@file"
+      # HTTP Services
+      - "traefik.http.routers.pila-generator-rtr.service=pila-generator-svc"
+      - "traefik.http.services.pila-generator-svc.loadbalancer.server.port=9114"
